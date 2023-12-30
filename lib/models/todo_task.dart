@@ -2,7 +2,7 @@ class TodoTask {
   int? id;
   String title;
   String? description;
-  bool isDone;
+  DateTime? completedAt;
   int? orderIndex;
   final DateTime? createdAt;
   final DateTime? deadline;
@@ -12,7 +12,7 @@ class TodoTask {
     this.id,
     required this.title,
     this.description,
-    this.isDone = false,
+    this.completedAt,
     DateTime? createdAt,
     this.orderIndex,
     this.deadline,
@@ -25,7 +25,7 @@ class TodoTask {
       'id': id,
       'title': title,
       'description': description,
-      'is_done': isDone ? 1 : 0,
+      'completed_at': completedAt,
       'order_index': orderIndex,
       'created_at': createdAt?.millisecondsSinceEpoch,
       'deadline': deadline?.millisecondsSinceEpoch,
@@ -39,7 +39,9 @@ class TodoTask {
       id: map['id'],
       title: map['title'],
       description: map['description'],
-      isDone: map['is_done'] == 1,
+      completedAt: map['completed_at'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['completed_at'])
+          : null,
       orderIndex: map['order_index'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at']),
       //deadline can be null
@@ -55,6 +57,8 @@ class TodoTask {
 
   @override
   String toString() {
-    return 'TodoTask{id: $id, title: $title, description: $description, isDone: $isDone, orderIndex: $orderIndex, createdAt: $createdAt, deadline: $deadline, recentlyUpdatedAt: $recentlyUpdatedAt}';
+    return 'TodoTask{id: $id, title: $title, description: $description, completedAt: $completedAt, orderIndex: $orderIndex, createdAt: $createdAt, deadline: $deadline, recentlyUpdatedAt: $recentlyUpdatedAt}';
   }
+
+
 }

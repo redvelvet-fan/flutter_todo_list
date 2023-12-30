@@ -4,37 +4,38 @@ import 'package:todo_list/models/todo_task.dart';
 
 class DatabaseService {
   static Database? _database;
+  static const String _databaseName = 'todo.db';
+  static const int _databaseVersion = 1;
+  static const String _tableName = 'todo_task';
 
-  Future<void> initDatabase({Future<void> Function()? onLoaded}) async {
+  static Future<void> initDatabase({
+    Future<void> Function()? onLoaded,
+  }) async {
     //open database
-    if (!isInitialized) {
-      _database = await openDatabase(
-        'todo.db',
-        version: 1,
-        onOpen: (db) async {
-          debugPrint("Database opened");
-          //check is database has todos table
-          final hasTable = await db.rawQuery(
-              'SELECT name FROM sqlite_master WHERE type="table" AND name="todo_task"');
-          if (hasTable.isNotEmpty) {
-            return;
-          }
-          //if db dose not has todos table, create todos table
-          await db.execute('CREATE TABLE todo_task('
-              'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-              'title TEXT,'
-              'description TEXT,'
-              'deadline INTEGER,'
-              'is_done INTEGER,'
-              'order_index INTEGER,'
-              'created_at INTEGER,'
-              'recently_updated_at INTEGER'
-              ')');
-        },
-      );
-    }
+    _database ??= await openDatabase(
+      _databaseName,
+      version: _databaseVersion,
+      onCreate: (db, version) async {
+        debugPrint("Database created");
+        //create todos table
+        await _createTodoTaskTable(db);
+      },
+    );
     debugPrint("Database initialized");
     onLoaded?.call();
+  }
+
+  static Future<void> _createTodoTaskTable(Database db) async {
+    await db.execute('CREATE TABLE todo_task('
+        'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+        'title TEXT,'
+        'description TEXT,'
+        'deadline INTEGER,'
+        'completed_at INTEGER,'
+        'order_index INTEGER,'
+        'created_at INTEGER,'
+        'recently_updated_at INTEGER'
+        ')');
   }
 
   //check is database is initialized
@@ -42,13 +43,14 @@ class DatabaseService {
 
   Future<Database> get database async {
     if (!isInitialized) {
-      await initDatabase();
+      throw Exception(
+          'Database is not initialized, please call initDatabase()');
     }
     return _database!;
   }
 
   Future<List<TodoTask>> getAllTodoTask({
-    bool? isDone,
+    bool? isCompleted,
   }) async {
     final db = await database;
 
@@ -56,42 +58,64 @@ class DatabaseService {
     //order by order_index
     final maps = await db.query('todo_task',
         orderBy: 'order_index DESC',
-        where: isDone == null ? null : 'is_done = ${isDone ? 1 : 0}');
+        where: isCompleted == null ? null : 'completed_at = ${isCompleted ? 1 : 0}');
 
     return List.generate(maps.length, (i) {
+      print(maps[i]);
       return TodoTask.fromMap(maps[i]);
     });
   }
 
-  Future<int> getTodoTaskCount({bool? isDone}) async {
+  Future<int> generateNextOrderIndex(bool isCompleted) async {
     final db = await database;
-    String queryText = 'SELECT COUNT(*) FROM todo_task';
-    queryText = isDone == null
-        ? queryText
-        : '$queryText WHERE is_done = ${isDone ? 1 : 0}';
-    final data = await db.rawQuery(queryText);
+    final data = await db.query(_tableName,
+      columns: ['MAX(order_index) as max_order_index'],
+      where: isCompleted ? 'completed_at IS NOT NULL' : 'completed_at IS NULL'
+    );
+    var result = data[0]['max_order_index'];
 
-    return data[0]['COUNT(*)'] as int;
+    return result == null ? 0 : (result as int) + 1;
   }
 
-  Future<void> insertTodoTask(TodoTask todoTask) async {
+  Future<int> insertTodoTask(TodoTask todoTask) async {
     final db = await database;
 
     //set index to last index
-    todoTask.orderIndex = await getTodoTaskCount(isDone: false);
+    todoTask.orderIndex = await generateNextOrderIndex(false);
 
     final data = todoTask.toMap();
 
-    await db.insert('todo_task', data);
+    return await db.insert('todo_task', data);
   }
 
-  Future<void> deleteTodoTask(TodoTask todoTask) async {
+  Future<int> deleteTodoTask(TodoTask todoTask) async {
     final db = await database;
 
-    await db.delete(
+    return await db.delete(
       'todo_task',
       where: 'id = ?',
       whereArgs: [todoTask.id],
     );
+  }
+
+  Future<void> switchOrderIndex(TodoTask oldTodoTask, TodoTask newTodoTask) async {
+    final db = await database;
+    final batch = db.batch();
+
+    batch.update(
+      'todo_task',
+      {'order_index': newTodoTask.orderIndex},
+      where: 'id = ?',
+      whereArgs: [oldTodoTask.id],
+    );
+
+    batch.update(
+      'todo_task',
+      {'order_index': oldTodoTask.orderIndex},
+      where: 'id = ?',
+      whereArgs: [newTodoTask.id],
+    );
+
+    await batch.commit(noResult: true);
   }
 }

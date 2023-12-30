@@ -8,13 +8,17 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final TodoTaskController todoTaskController = Get.put(TodoTaskController());
+    final todoTaskList = todoTaskController.todoTaskList;
 
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
-        title: const Text('ToDo'),
+        title:  GestureDetector(
+          onTap: (){
+                  print(todoTaskController.todoTaskList);
+          },
+            child: Text('ToDo')),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -24,21 +28,31 @@ class HomePage extends StatelessWidget {
         child: const Icon(Icons.add),
       ),
       body: SafeArea(
-        child: Center(
-          child: GestureDetector(
-            onTap: ()async{
-              //get all task from database
-              await todoTaskController.getAllTodoTask();
-              print(todoTaskController.todoTaskList);
-              // remove todos table from database
-
-            },
-            child: Text(
-              'Hello, world!',
-              style: TextStyle(fontSize: 24),
-            ),
-          ),
-        ),
+        child : Obx(() {
+          if (todoTaskList.isEmpty) {
+            return const Center(
+              child: Text('No data'),
+            );
+          }
+          return ReorderableListView.builder(
+              itemBuilder: (context, index) {
+                return ListTile(
+                  key: Key('$index'),
+                  title: Text(todoTaskList[index].title),
+                  subtitle: Text(todoTaskList[index].description ?? ''),
+                  trailing: IconButton(
+                    onPressed: () {
+                      todoTaskController.removeTodoTask(
+                          todoTaskList[index]);
+                    },
+                    icon: const Icon(Icons.delete),
+                  ),
+                );
+              },
+              itemCount: todoTaskList.length,
+              buildDefaultDragHandles: !todoTaskController.isOnProgress.value,
+              onReorder: todoTaskController.switchOrderIndex);
+        }),
       ),
     );
   }
