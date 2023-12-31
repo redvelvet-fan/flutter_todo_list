@@ -21,8 +21,9 @@ class TodoTask {
     this.recentlyUpdatedAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  get status => completedAt == null ? TodoTaskStatus.inProgress : TodoTaskStatus.completed;
+  TodoTaskStatus get status => completedAt == null ? TodoTaskStatus.inProgress : TodoTaskStatus.completed;
 
+  bool get isCompleted => completedAt != null;
   //convert Map<String, dynamic> for sqflite database
   Map<String, dynamic> toMap() {
     return {

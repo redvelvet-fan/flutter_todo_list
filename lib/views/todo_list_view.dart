@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:todo_list/components/list_item.dart';
 import 'package:todo_list/controller/todo_task_controller.dart';
 import 'package:todo_list/models/todo_task.dart';
 
 class TodoListView extends GetView<TodoTaskController> {
-  const TodoListView(this.status,{Key? key}) : super(key: key);
+  const TodoListView(this.status, {Key? key,this.scrollController}) : super(key: key);
 
   final TodoTaskStatus status;
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -16,17 +18,16 @@ class TodoListView extends GetView<TodoTaskController> {
     return Obx(
       () => ReorderableListView.builder(
         key: PageStorageKey(status),
+        scrollController: scrollController,
         itemBuilder: (context, index) {
-          return ListTile(
-            key: Key('$index'),
-            title: Text('${todoTaskList[index].id}'),
-            subtitle: Text(todoTaskList[index].description ?? ''),
-            trailing: IconButton(
-              onPressed: () {
-                controller.removeTodoTask(todoTaskList[index]);
-              },
-              icon: const Icon(Icons.delete),
-            ),
+          final id = todoTaskList[index].id;
+          return ListItem(
+            todoTask:todoTaskList[index],
+            key: Key("${status}_$id"),
+            onTap: () {
+              print("tap $index");
+              //go to detail page
+            },
           );
         },
         itemCount: todoTaskList.length,

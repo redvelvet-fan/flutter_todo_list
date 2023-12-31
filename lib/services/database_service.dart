@@ -11,6 +11,7 @@ class DatabaseService {
   static Future<void> initDatabase({
     Future<void> Function()? onLoaded,
   }) async {
+    // deleteDatabase(_databaseName);
     //open database
     _database ??= await openDatabase(
       _databaseName,
@@ -77,6 +78,11 @@ class DatabaseService {
     );
   }
 
+  Future<void> _connectTask(Transaction txn, int? prevId, int? nextId) async {
+    if (prevId != null) await _updateNextId(txn, prevId, nextId);
+    if (nextId != null) await _updatePrevId(txn, nextId, prevId);
+  }
+
   //맨 앞에 있는 즉, prev_id가 null인 TodoTask의 id를 가져옴
   Future<void> insertTodoTask(TodoTask todoTask) async {
     final db = await database;
@@ -86,10 +92,8 @@ class DatabaseService {
       final data = todoTask.toMap();
       var id = await txn.insert(_tableName, data);
       todoTask.id = id;
-      if (todoTask.nextId != null)
-        await _updatePrevId(txn, todoTask.nextId!, todoTask.id);
-      if (todoTask.prevId != null)
-        await _updateNextId(txn, todoTask.prevId!, todoTask.id);
+      await _connectTask(txn, todoTask.prevId, todoTask.id);
+      await _connectTask(txn, todoTask.id, todoTask.nextId);
     });
   }
 
@@ -103,10 +107,7 @@ class DatabaseService {
         where: 'id = ?',
         whereArgs: [todoTask.id],
       );
-      if (todoTask.nextId != null)
-        await _updatePrevId(txn, todoTask.nextId!, todoTask.prevId);
-      if (todoTask.prevId != null)
-        await _updateNextId(txn, todoTask.prevId!, todoTask.nextId);
+      await _connectTask(txn, todoTask.prevId, todoTask.nextId);
     });
   }
 
@@ -120,22 +121,19 @@ class DatabaseService {
     final db = await database;
     await db.transaction((txn) async {
       // old Prev, Next TodoTask의 prev_id, next_id를 서로 연결
-      if (oldPrevTodoTaskId != null) {
-        await _updateNextId(txn, oldPrevTodoTaskId, oldNextTodoTaskId);
-      }
-      if (oldNextTodoTaskId != null) {
-        await _updatePrevId(txn, oldNextTodoTaskId, oldPrevTodoTaskId);
-      }
-      // new Prev, Next TodoTask의 prev_id, next_id를 targetTodoTaskId와 연결
-      if (newPrevTodoTaskId != null) {
-        await _updateNextId(txn, newPrevTodoTaskId, targetTodoTaskId);
-      }
-      if (newNextTodoTaskId != null) {
-        await _updatePrevId(txn, newNextTodoTaskId, targetTodoTaskId);
-      }
-      // targetTodoTaskId의 prev_id, next_id를 new Prev, Next TodoTask와 연결
-      await _updateNextId(txn, targetTodoTaskId, newNextTodoTaskId);
-      await _updatePrevId(txn, targetTodoTaskId, newPrevTodoTaskId);
+      await _connectTask(txn, oldPrevTodoTaskId, oldNextTodoTaskId);
+      await _connectTask(txn, newPrevTodoTaskId, targetTodoTaskId);
+      await _connectTask(txn, targetTodoTaskId, newNextTodoTaskId);
     });
+  }
+
+  Future<void> updateTodoTask(TodoTask todoTask) async {
+    final db = await database;
+    await db.update(
+      _tableName,
+      todoTask.toMap(),
+      where: 'id = ?',
+      whereArgs: [todoTask.id],
+    );
   }
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:todo_list/models/todo_task.dart';
 import 'package:todo_list/services/database_service.dart';
@@ -47,6 +47,10 @@ class TodoTaskController extends GetxController {
     if (firstTodoTask == null) {
       return unsortedList;
     }
+    for (var todoTask in unsortedList) {
+      print(
+          '${todoTask.title} : ${todoTask.prevId} -> ${todoTask.id} -> ${todoTask.nextId}');
+    }
     return _findAndInsertNextTodoTask(firstTodoTask, unsortedList);
   }
 
@@ -57,6 +61,7 @@ class TodoTaskController extends GetxController {
     if (todoTask.nextId == null) {
       return unsortedList;
     } else {
+      print('nextId: ${todoTask.nextId}');
       TodoTask nextTodoTask =
           unsortedList.firstWhere((td) => td.id == todoTask.nextId);
       unsortedList
@@ -179,5 +184,20 @@ class TodoTaskController extends GetxController {
           todo.id!, oldPrevId, oldNextId, prev?.id, next?.id);
     });
     return;
+  }
+
+  Future<void> toggleTodoTaskStatus(
+      TodoTask todoTask,
+      )async {
+    return await _progressWrapper(() async{
+      var result = _removeTodoTaskInState(todoTask);
+      var oldPrevId = result.prevId;
+      var oldNextId = result.nextId;
+      result.completedAt = result.completedAt == null ? DateTime.now() : null;
+      var [prev, todo!, next] = _insertTodoTaskInState(0, result);
+      await _databaseService.reorderTodoTask(
+          todo.id!, oldPrevId, oldNextId, prev?.id, next?.id);
+      await _databaseService.updateTodoTask(result);
+    });
   }
 }
