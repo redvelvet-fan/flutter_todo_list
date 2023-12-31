@@ -26,13 +26,14 @@ class DatabaseService {
   }
 
   static Future<void> _createTodoTaskTable(Database db) async {
-    await db.execute('CREATE TABLE todo_task('
+    await db.execute('CREATE TABLE $_tableName('
         'id INTEGER PRIMARY KEY AUTOINCREMENT,'
         'title TEXT,'
         'description TEXT,'
         'deadline INTEGER,'
+        'prev_id INTEGER,'
+        'next_id INTEGER,'
         'completed_at INTEGER,'
-        'order_index INTEGER,'
         'created_at INTEGER,'
         'recently_updated_at INTEGER'
         ')');
@@ -49,73 +50,92 @@ class DatabaseService {
     return _database!;
   }
 
-  Future<List<TodoTask>> getAllTodoTask({
-    bool? isCompleted,
-  }) async {
+  Future<List<TodoTask>> getAllTodoTask() async {
     final db = await database;
 
     //get all data from todos table
-    //order by order_index
-    final maps = await db.query('todo_task',
-        orderBy: 'order_index DESC',
-        where: isCompleted == null ? null : 'completed_at = ${isCompleted ? 1 : 0}');
+    String query = 'SELECT * FROM $_tableName';
+    final List<Map<String, dynamic>> results = await db.rawQuery(query);
+    return results.map((map) => TodoTask.fromMap(map)).toList();
+  }
 
-    return List.generate(maps.length, (i) {
-      print(maps[i]);
-      return TodoTask.fromMap(maps[i]);
+  Future<void> _updatePrevId(Transaction txn, int id, int? prevId) async {
+    await txn.update(
+      _tableName,
+      {'prev_id': prevId},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> _updateNextId(Transaction txn, int id, int? nextId) async {
+    await txn.update(
+      _tableName,
+      {'next_id': nextId},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  //맨 앞에 있는 즉, prev_id가 null인 TodoTask의 id를 가져옴
+  Future<void> insertTodoTask(TodoTask todoTask) async {
+    final db = await database;
+
+    //To maintain consistency, use transaction
+    await db.transaction((txn) async {
+      final data = todoTask.toMap();
+      var id = await txn.insert(_tableName, data);
+      todoTask.id = id;
+      if (todoTask.nextId != null)
+        await _updatePrevId(txn, todoTask.nextId!, todoTask.id);
+      if (todoTask.prevId != null)
+        await _updateNextId(txn, todoTask.prevId!, todoTask.id);
     });
   }
 
-  Future<int> generateNextOrderIndex(bool isCompleted) async {
+  Future<void> deleteTodoTask(TodoTask todoTask) async {
     final db = await database;
-    final data = await db.query(_tableName,
-      columns: ['MAX(order_index) as max_order_index'],
-      where: isCompleted ? 'completed_at IS NOT NULL' : 'completed_at IS NULL'
-    );
-    var result = data[0]['max_order_index'];
 
-    return result == null ? 0 : (result as int) + 1;
+    //To maintain consistency, use transaction
+    await db.transaction((txn) async {
+      await txn.delete(
+        _tableName,
+        where: 'id = ?',
+        whereArgs: [todoTask.id],
+      );
+      if (todoTask.nextId != null)
+        await _updatePrevId(txn, todoTask.nextId!, todoTask.prevId);
+      if (todoTask.prevId != null)
+        await _updateNextId(txn, todoTask.prevId!, todoTask.nextId);
+    });
   }
 
-  Future<int> insertTodoTask(TodoTask todoTask) async {
+  Future<void> reorderTodoTask(
+    int targetTodoTaskId,
+    int? oldPrevTodoTaskId,
+    int? oldNextTodoTaskId,
+    int? newPrevTodoTaskId,
+    int? newNextTodoTaskId,
+  ) async {
     final db = await database;
-
-    //set index to last index
-    todoTask.orderIndex = await generateNextOrderIndex(false);
-
-    final data = todoTask.toMap();
-
-    return await db.insert('todo_task', data);
-  }
-
-  Future<int> deleteTodoTask(TodoTask todoTask) async {
-    final db = await database;
-
-    return await db.delete(
-      'todo_task',
-      where: 'id = ?',
-      whereArgs: [todoTask.id],
-    );
-  }
-
-  Future<void> switchOrderIndex(TodoTask oldTodoTask, TodoTask newTodoTask) async {
-    final db = await database;
-    final batch = db.batch();
-
-    batch.update(
-      'todo_task',
-      {'order_index': newTodoTask.orderIndex},
-      where: 'id = ?',
-      whereArgs: [oldTodoTask.id],
-    );
-
-    batch.update(
-      'todo_task',
-      {'order_index': oldTodoTask.orderIndex},
-      where: 'id = ?',
-      whereArgs: [newTodoTask.id],
-    );
-
-    await batch.commit(noResult: true);
+    await db.transaction((txn) async {
+      // old Prev, Next TodoTask의 prev_id, next_id를 서로 연결
+      if (oldPrevTodoTaskId != null) {
+        await _updateNextId(txn, oldPrevTodoTaskId, oldNextTodoTaskId);
+      }
+      if (oldNextTodoTaskId != null) {
+        await _updatePrevId(txn, oldNextTodoTaskId, oldPrevTodoTaskId);
+      }
+      // new Prev, Next TodoTask의 prev_id, next_id를 targetTodoTaskId와 연결
+      if (newPrevTodoTaskId != null) {
+        await _updateNextId(txn, newPrevTodoTaskId, targetTodoTaskId);
+      }
+      if (newNextTodoTaskId != null) {
+        await _updatePrevId(txn, newNextTodoTaskId, targetTodoTaskId);
+      }
+      // targetTodoTaskId의 prev_id, next_id를 new Prev, Next TodoTask와 연결
+      await _updateNextId(txn, targetTodoTaskId, newNextTodoTaskId);
+      await _updatePrevId(txn, targetTodoTaskId, newPrevTodoTaskId);
+    });
   }
 }

@@ -5,7 +5,7 @@ import 'package:todo_list/models/todo_task.dart';
 import 'package:todo_list/utils/date_utils.dart';
 
 //Create a New TodoTask
-class AddTodoPage extends StatelessWidget {
+class AddTodoPage extends GetView<TodoTaskController> {
   const AddTodoPage({Key? key}) : super(key: key);
 
   @override
@@ -13,12 +13,18 @@ class AddTodoPage extends StatelessWidget {
     final titleObserver = ''.obs;
     final descriptionObserver = ''.obs;
     final deadlineObserver = Rx<DateTime?>(null);
+    final completedAtObserver = Rx<DateTime?>(null);
+    final isCompletedObserver = false.obs
+      ..listen((p0) {
+        print('isCompletedObserver : $p0');
+        completedAtObserver.value = p0 ? DateTime.now() : null;
+      });
 
     Future<DateTime?> selectDate() async {
       DateTime today = DateTime.now();
       DateTime? selectedTime = await showDatePicker(
         context: context,
-        firstDate: today,
+        firstDate: today.subtract(const Duration(days: 365 * 18)),
         lastDate: DateTime(today.year + 36),
         initialDate: today,
       );
@@ -128,6 +134,51 @@ class AddTodoPage extends StatelessWidget {
                     ),
                   ],
                 ),
+                //Completed
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Obx(() => CheckboxListTile(
+                        title: const Text('Completed'),
+                        value: isCompletedObserver.value,
+                        onChanged: (value) {
+                          isCompletedObserver.value = value!;
+                        },
+                      )),
+                ),
+                Obx(
+                  () => isCompletedObserver.value
+                      ? Row(
+                        children: [
+                          Expanded(
+                            child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Obx(() => Text(
+                                      completedAtObserver.value != null
+                                          ? DateUtils.getFormattedDate(
+                                              completedAtObserver.value!)
+                                          : 'No Completed Date',
+                                      style: const TextStyle(fontSize: 20),
+                                    )),
+                              ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                DateTime? selectedCompletedAt =
+                                    await selectDeadline();
+                                if (selectedCompletedAt != null) {
+                                  completedAtObserver.value =
+                                      selectedCompletedAt;
+                                }
+                              },
+                              child: const Text('Set Completed Date'),
+                            ),
+                          ),
+                        ],
+                      )
+                      : const SizedBox(),
+                )
               ],
             )),
           ),
@@ -139,17 +190,18 @@ class AddTodoPage extends StatelessWidget {
                 //check title is not empty
                 if (titleObserver.value.isEmpty) {
                   Get.snackbar('Error', 'Title is empty',
-                      snackPosition: SnackPosition.BOTTOM );
+                      snackPosition: SnackPosition.BOTTOM);
                   return;
                 }
                 TodoTask todoTask = TodoTask(
                   title: titleObserver.value,
                   description: descriptionObserver.value,
                   deadline: deadlineObserver.value,
+                  completedAt: completedAtObserver.value,
                 );
                 debugPrint(todoTask.toString());
                 //add todoTask to TodoTaskListController
-                Get.find<TodoTaskController>().addTodoTask(todoTask);
+                Get.find<TodoTaskController>().insertTodoTask(0,todoTask);
                 //go back to HomePage
                 Get.back();
               },
