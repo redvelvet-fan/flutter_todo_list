@@ -1,64 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:todo_list/controller/todo_tab_controller.dart';
-import 'package:todo_list/controller/todo_task_controller.dart';
+import 'package:todo_list/controller/todo_task_list_controller.dart';
+import 'package:todo_list/localization/localization_keys.dart';
 import 'package:todo_list/models/todo_task.dart';
 import 'package:todo_list/views/todo_list_view.dart';
 
-class HomePage extends GetView<TodoTaskController> {
+import 'edit_todo_page.dart';
+
+class HomePage extends GetView<TodoTabController> {
   const HomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final todoTaskList = controller.inProgressTodoTaskList;
-    final todoTabController = Get.put(TodoTabController());
+    Get.put(TodoTaskListController());
     return Scaffold(
       appBar: AppBar(
           automaticallyImplyLeading: true,
-          title: GestureDetector(
-              onTap: () {
-                for (int i = 0; i < todoTaskList.length; i++) {
-                  print(
-                      '${todoTaskList[i].title}(${todoTaskList[i].status}: ${todoTaskList[i].completedAt}) : ${todoTaskList[i].prevId} -> ${todoTaskList[i].id} -> ${todoTaskList[i].nextId}');
-                }
-              },
-              child: Text('ToDo')),
+          title: Text(LocalizationKeys.todo.tr),
           bottom: TabBar(
-            controller: todoTabController.controller,
-
+            controller: controller.tabController,
             onTap: (index) {
               //get current index
-              if (todoTabController.prevIndex.value != index) {
-                todoTabController.prevIndex.value = index;
+              if (controller.prevIndex.value != index) {
+                controller.prevIndex.value = index;
                 return;
               }
               //scroll to Top
-              todoTabController.scrollToTop(index);
+              controller.scrollToTop(index);
             },
-            tabs: const [
+            tabs: [
               Tab(
-                text: 'In Progress',
+                text: LocalizationKeys.inProgress.tr,
               ),
               Tab(
-                text: 'Completed',
+                text: LocalizationKeys.completed.tr,
               ),
             ],
           )),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Go to AddTodoPage
-          Get.toNamed('/add');
+          Get.to(() => const EditTodoPage());
         },
         child: const Icon(Icons.add),
       ),
       body: SafeArea(
           child: TabBarView(
-        controller: todoTabController.controller,
+        controller: controller.tabController,
         children: [
           TodoListView(TodoTaskStatus.inProgress,
-              scrollController: todoTabController.inProgressScrollController),
+              scrollController: controller.inProgressScrollController),
           TodoListView(TodoTaskStatus.completed,
-              scrollController: todoTabController.completedScrollController),
+              scrollController: controller.completedScrollController),
         ],
       )),
     );

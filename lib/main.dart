@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:todo_list/controller/todo_tab_controller.dart';
+import 'package:todo_list/localization/localization.dart';
 import 'package:todo_list/pages/home_page.dart';
-import 'package:todo_list/routes.dart';
 import 'package:todo_list/services/database_service.dart';
 
 Future<void> main() async {
@@ -17,13 +18,17 @@ class TodoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Get.put(TodoTabController());
     return GetMaterialApp(
       title: 'Todo App',
+      locale: Get.deviceLocale,
+      translations: Localization(),
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orangeAccent),
         useMaterial3: true,
       ),
-      getPages: appRoutes,
+      home: const HomePage(),
+      // getPages: appRoutes,
     );
   }
 }

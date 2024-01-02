@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 
 class TodoTabController extends GetxController
     with GetSingleTickerProviderStateMixin {
-  late final TabController controller;
+  late final TabController tabController;
   final inProgressScrollController = ScrollController();
   final completedScrollController = ScrollController();
   var prevIndex = 0.obs;
@@ -11,10 +11,10 @@ class TodoTabController extends GetxController
   @override
   void onInit() {
     super.onInit();
-    controller = TabController(length: 2, vsync: this);
+    tabController = TabController(length: 2, vsync: this);
   }
 
-  int get currentIndex => controller.index;
+  int get currentIndex => tabController.index;
 
   void scrollToTop(int index) {
     var targetScrollController =

@@ -33,7 +33,9 @@ class ListItemController extends GetxController with GetSingleTickerProviderStat
     super.dispose();
   }
 
-  void toggle(){
+  Future<void> toggle()async{
     isChecked.value = !isChecked.value;
+    //wait for animation
+    await Future.delayed(const Duration(milliseconds: 200));
   }
 }

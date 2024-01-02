@@ -3,27 +3,47 @@ import 'package:sqflite/sqflite.dart';
 import 'package:todo_list/models/todo_task.dart';
 
 class DatabaseService {
+  static bool _isTest = false;
+
+  static set isTest(bool value) => _isTest = value;
+
   static Database? _database;
-  static const String _databaseName = 'todo.db';
+
+  static String _databaseName = _isTest ? 'test_todo.db' : 'todo.db';
+
+  static String get databaseName => _databaseName;
+
   static const int _databaseVersion = 1;
   static const String _tableName = 'todo_task';
 
-  static Future<void> initDatabase({
-    Future<void> Function()? onLoaded,
-  }) async {
+  static Future<Database?> initDatabase({String? databaseName}) async {
+    print(DatabaseService.databaseName);
     // deleteDatabase(_databaseName);
+    if (databaseName != null) _databaseName = databaseName;
     //open database
     _database ??= await openDatabase(
       _databaseName,
       version: _databaseVersion,
       onCreate: (db, version) async {
-        debugPrint("Database created");
+        debugPrint("Database created, name: $_databaseName");
+        _databaseName = _databaseName;
         //create todos table
         await _createTodoTaskTable(db);
       },
     );
-    debugPrint("Database initialized");
-    onLoaded?.call();
+    debugPrint("Database initialized successfully, name: $_databaseName");
+    return _database;
+  }
+
+  //close database
+  static Future<void> closeDatabase() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+      if (_isTest) {
+        deleteDatabase(_databaseName);
+      }
+    }
   }
 
   static Future<void> _createTodoTaskTable(Database db) async {

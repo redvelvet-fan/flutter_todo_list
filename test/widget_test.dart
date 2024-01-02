@@ -1,30 +1,35 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:todo_list/main.dart';
+import 'package:todo_list/pages/edit_todo_page.dart';
+import 'package:todo_list/services/database_service.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  setUpAll(() async{
+    WidgetsFlutterBinding.ensureInitialized();
+    databaseFactory = databaseFactoryFfi;
+    DatabaseService.isTest = true;
+    await DatabaseService.initDatabase(databaseName: 'widget_test.db');
+  });
+  testWidgets('Navigate to EditTodoPage on FAB tap', (WidgetTester tester) async {
+    // Initialize the app
     await tester.pumpWidget(const TodoApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Find the FloatingActionButton
+    final fabFinder = find.byType(FloatingActionButton);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Tap the FloatingActionButton
+    await tester.tap(fabFinder);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Rebuild the widget after the state has changed.
+    await tester.pumpAndSettle();
+
+    // Check if EditTodoPage is present
+    expect(find.byType(EditTodoPage), findsOneWidget);
+  });
+  tearDownAll(() async {
+    print("tearDown (widget_test.dart)");
+    await DatabaseService.closeDatabase();
   });
 }

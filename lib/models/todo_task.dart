@@ -62,9 +62,45 @@ class TodoTask {
     );
   }
 
+  TodoTask copyWith({
+    int? id,
+    String? title,
+    String? description,
+    DateTime? completedAt,
+    int? prevId,
+    int? nextId,
+    DateTime? createdAt,
+    DateTime? deadline,
+    DateTime? recentlyUpdatedAt,
+  }) {
+    return TodoTask(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      completedAt: completedAt ?? this.completedAt,
+      prevId: prevId ?? this.prevId,
+      nextId: nextId ?? this.nextId,
+      createdAt: createdAt ?? this.createdAt,
+      deadline: deadline ?? this.deadline,
+      recentlyUpdatedAt: recentlyUpdatedAt ?? this.recentlyUpdatedAt,
+    );
+  }
+
   @override
   String toString() {
     return 'TodoTask{id: $id, title: $title, description: $description, completedAt: $completedAt, prevId: $prevId, nextId: $nextId createdAt: $createdAt, deadline: $deadline, recentlyUpdatedAt: $recentlyUpdatedAt}';
+  }
+
+  bool isSame(TodoTask other) {
+    return id == other.id &&
+        title == other.title &&
+        description == other.description &&
+        completedAt == other.completedAt &&
+        prevId == other.prevId &&
+        nextId == other.nextId &&
+        createdAt == other.createdAt &&
+        deadline == other.deadline &&
+        recentlyUpdatedAt == other.recentlyUpdatedAt;
   }
 }
 

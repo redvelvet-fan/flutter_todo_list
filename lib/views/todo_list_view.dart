@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:todo_list/components/list_item.dart';
-import 'package:todo_list/controller/todo_task_controller.dart';
+import 'package:todo_list/controller/todo_task_list_controller.dart';
 import 'package:todo_list/models/todo_task.dart';
+import 'package:todo_list/pages/edit_todo_page.dart';
 
-class TodoListView extends GetView<TodoTaskController> {
-  const TodoListView(this.status, {Key? key,this.scrollController}) : super(key: key);
+class TodoListView extends GetView<TodoTaskListController> {
+  const TodoListView(this.status, {Key? key, this.scrollController})
+      : super(key: key);
 
   final TodoTaskStatus status;
   final ScrollController? scrollController;
@@ -16,29 +18,48 @@ class TodoListView extends GetView<TodoTaskController> {
         ? controller.inProgressTodoTaskList
         : controller.completedTodoTaskList;
     return Obx(
-      () => ReorderableListView.builder(
+      () {
+        if (!controller.isLoaded) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+        if (todoTaskList.isEmpty) {
+          return const Center(
+            child: Text("No Todo Task"),
+          );
+        }
+        return ReorderableListView.builder(
         key: PageStorageKey(status),
         scrollController: scrollController,
         itemBuilder: (context, index) {
-          final id = todoTaskList[index].id;
-          return ListItem(
-            todoTask:todoTaskList[index],
-            key: Key("${status}_$id"),
-            onTap: () {
-              print("tap $index");
-              //go to detail page
-            },
+          final todoTask = todoTaskList[index];
+          return Container(
+            key: Key("${status}_${todoTask.id}"),
+              color: index.isEven ? Theme.of(context).hoverColor : Theme.of(context).cardColor,
+            child: ListItem(
+              todoTask: todoTaskList[index],
+              onTap: () {
+                print("tap $index");
+                //go to detail page
+                Get.to(() => EditTodoPage(
+                      defaultTodoTask: todoTask,
+                    ));
+              },
+            ),
           );
         },
         itemCount: todoTaskList.length,
-        buildDefaultDragHandles: !controller.isOnProgress.value,
+        buildDefaultDragHandles: !controller.isOnProgress,
+
         onReorder: (oldIndex, newIndex) {
           if (oldIndex < newIndex) {
             newIndex -= 1;
           }
           controller.reorderTodoTask(todoTaskList[oldIndex], newIndex);
         },
-      ),
+      );
+      },
     );
   }
 }
