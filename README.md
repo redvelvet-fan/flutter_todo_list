@@ -1,16 +1,18 @@
-# todo_list
+# Flutter To-Do List Application
 
-TodoList
+## 설명
+Flutter로 제작된 이 To-Do List 애플리케이션은 할 일을 효율적으로 관리할 수 있게 도와줍니다.
 
-## Getting Started
+## 주요 기능
+- 할 일을 제목, 설명, 마감 기한과 함께 등록 가능
+- 한 번의 클릭으로 할 일 완료 처리 및 완료 시간 자동 기록
+- 완료된 할 일을 수정하거나 상태를 다시 진행 중으로 변경 가능
 
-This project is a starting point for a Flutter application.
+## 기술
+- 내부 저장소로 SQLite 사용, `sqflite` 및 `sqflite_common_ffi` 라이브러리 사용
+- GetX를 활용하여 앱 시작 시 저장된 값을 불러오고 진행 중, 완료된 항목을 분류
+- Controller를 통한 데이터 관리
+- 드래그 앤 드롭을 이용한 재정렬 가능, LinkedList 방식으로 효율적인 순서 변경 구현
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 테스트
+- CRUD 기능에 중점을 둔 단위 테스트 구현
