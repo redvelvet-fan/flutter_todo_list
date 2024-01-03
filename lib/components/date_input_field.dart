@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart' hide DateUtils;
-import 'package:todo_list/utils/date_utils.dart';
+import 'package:flutter/material.dart';
+import 'package:todo_list/utils/todo_date_utils.dart';
 import 'package:todo_list/utils/default_values.dart';
 
 class DateInputField extends StatelessWidget {
@@ -14,7 +14,7 @@ class DateInputField extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isNull = value == null;
     selectDate() async {
-      final DateTime? picked = await DateUtils.selectDateTime(context);
+      final DateTime? picked = await TodoDateUtils.selectDateTime(context);
       if (picked != null) {
         onChanged?.call(picked);
       }
@@ -44,7 +44,7 @@ class DateInputField extends StatelessWidget {
                 children: [
                   Text(
                     !isNull
-                        ? DateUtils.getFormattedDate(value)
+                        ? TodoDateUtils.getFormattedDate(value)
                         : "----.--.-- AM/PM --:--",
                     style: TextStyle(
                       fontSize: DefaultValues.fontSize,

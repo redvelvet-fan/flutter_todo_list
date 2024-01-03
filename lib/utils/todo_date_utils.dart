@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:todo_list/localization/localization_keys.dart';
 
-class DateUtils{
+class TodoDateUtils{
   static String getFormattedDate(DateTime? dateTime) {
     if (dateTime == null) return '';
     //format like 2023.12.29 오후 5:30

@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart' hide DateUtils;
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:todo_list/controller/list_item_controller.dart';
 import 'package:todo_list/controller/todo_task_list_controller.dart';
 import 'package:todo_list/localization/localization_keys.dart';
 import 'package:todo_list/models/todo_task.dart';
-import 'package:todo_list/utils/date_utils.dart';
+import 'package:todo_list/utils/todo_date_utils.dart';
 import 'package:todo_list/utils/default_values.dart';
 
 class ListItem extends GetView<TodoTaskListController> {
@@ -31,10 +31,10 @@ class ListItem extends GetView<TodoTaskListController> {
 
     String dateInfo(String title, DateTime? dateTime) {
       if(todoTask.deadline != null){
-        return "${LocalizationKeys.deadline.tr} : ${DateUtils.getFormattedDate(todoTask.deadline)}";
+        return "${LocalizationKeys.deadline.tr} : ${TodoDateUtils.getFormattedDate(todoTask.deadline)}";
       }
       if(todoTask.completedAt != null){
-        return "${LocalizationKeys.completedAt.tr} : ${DateUtils.getFormattedDate(todoTask.completedAt)}";
+        return "${LocalizationKeys.completedAt.tr} : ${TodoDateUtils.getFormattedDate(todoTask.completedAt)}";
       }
       return "";
     }
